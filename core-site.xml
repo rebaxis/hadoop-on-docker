@@ -1,0 +1,7 @@
+<configuration>
+   <property>
+      <name>fs.defaultFS</name>
+      <value>hdfs://namenode:8020/</value>
+      <description>Where HDFS NameNode can be found on the network</description>
+   </property>
+</configuration>

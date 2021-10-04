@@ -1,0 +1,36 @@
+FROM registry.access.redhat.com/ubi8/ubi:latest
+
+USER root
+
+ENV JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.302.b08-0.el8_4.x86_64/jre
+ENV HIVE_HOME=/opt/hive
+ENV HADOOP_HOME=/opt/hadoop
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$PATH:/opt/hadoop/bin:/opt/hive/bin
+
+COPY spark-3.2.1-SNAPSHOT-bin-spark-3.2rc.tgz /tmp/spark.tgz 
+
+RUN dnf update --nogpgcheck --nodocs --refresh -y &&\
+    dnf install --nogpgcheck --nodocs --refresh -y java python3 &&\
+    # Clean dnf/yum caches.
+    dnf clean all &&\
+    rm -rf /var/cache/yum
+
+RUN curl -kL https://archive.apache.org/dist/hadoop/core/hadoop-2.7.4/hadoop-2.7.4.tar.gz -o /tmp/hadoop.tgz &&\
+    cd /opt && tar xf /tmp/hadoop.tgz && mv /opt/hadoop-* /opt/hadoop
+
+RUN curl -kL https://archive.apache.org/dist/hive/hive-1.1.0/apache-hive-1.1.0-bin.tar.gz -o /tmp/hive.tgz &&\
+    cd /opt && tar xf /tmp/hive.tgz && mv /opt/apache-hive* /opt/hive
+
+RUN cd /opt && tar xf /tmp/spark.tgz && mv /opt/spark-* ${SPARK_HOME} &&\
+    ln -sf ${SPARK_HOME}/bin/* /usr/local/bin/ &&\
+    # Clean caches and tmps.
+    rm -rf /tmp/*
+
+RUN pip3 install --upgrade --no-cache-dir setuptools pip wheel \
+    --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
+
+RUN pip3 install --upgrade --no-cache-dir jupyterlab \
+    --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
+
+ENTRYPOINT ["jupyter", "lab", "--allow-root"]

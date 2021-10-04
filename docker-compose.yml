@@ -22,24 +22,37 @@ services:
     ports:
       - "50075:50075"
   hive-server:
-    image: bde2020/hive:2.3.2-postgresql-metastore
+#    image: bde2020/hive:2.3.2-postgresql-metastore
+    image: hive:1.1.0
     env_file:
       - ./hadoop-hive.env
+    command: /opt/hive/bin/hive --service hiveserver2
+    volumes:
+      - './hive-site.xml:/opt/hadoop/etc/hadoop/hive-site.xml'
     environment:
-      HIVE_CORE_CONF_javax_jdo_option_ConnectionURL: "jdbc:postgresql://hive-metastore/metastore"
       SERVICE_PRECONDITION: "hive-metastore:9083"
     ports:
       - "10000:10000"
   load-table:
-    image: bde2020/hive:2.3.2-postgresql-metastore
+    image: hive:1.1.0
+#    image: bde2020/hive:2.3.2-postgresql-metastore
     volumes:
       - './load_table.sh:/tmp/load_table.sh'
+      - './core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml'
+      - './hive-site.xml:/opt/hadoop/etc/hadoop/hive-site.xml'
     depends_on:
       - hive-server
+      - datanode
+#    environment:
+#      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop/
     command: sh -c /tmp/load_table.sh
     network_mode: service:hive-server
   hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
+ #   image: bde2020/hive:2.3.2-postgresql-metastore
+    image: hive:1.1.0
+    build:
+      context: .
+      dockerfile: Dockerfile_hive 
     env_file:
       - ./hadoop-hive.env
     command: /opt/hive/bin/hive --service metastore
@@ -50,11 +63,19 @@ services:
   hive-metastore-postgresql:
     image: bde2020/hive-metastore-postgresql:2.3.0
   spark:
-    image: registry.sigma.sbrf.ru/dev/ci01771481/ci02012039_sdposcp_dev/notebooks/spark-notebook:3.1.2
+#    image: registry.sigma.sbrf.ru/dev/ci01771481/ci02012039_sdposcp_dev/notebooks/spark-notebook:3.1.2
+    image: spark3.2rc-notebook:latest
+    build:
+      context: .
+      dockerfile: Dockerfile_spark
+    environment:
+      - HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop/
     env_file:
       - ./hadoop-hive.env
     volumes:
-      - './hive-site.xml:/opt/spark/conf/hive-site.xml'
+#      - './hive-site.xml:/opt/spark/conf/hive-site.xml'
+      - './core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml'
+      - './hive-site.xml:/opt/hadoop/etc/hadoop/hive-site.xml'
 
 volumes:
   namenode:
